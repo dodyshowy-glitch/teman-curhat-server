@@ -93,14 +93,12 @@ io.on("connection", (socket) => {
   // ─── TALKER JOIN ─────────────────────────────────────────────────────
   socket.on("talker:join", () => {
     talkers[socket.id] = { socketId: socket.id, waitingForNotif: false };
+    waitingQueue.push(socket.id);
     const available = getAvailableListener();
     if (available) {
-      // Notify the listener
       io.to(available.socketId).emit("listener:talker_waiting");
       socket.emit("talker:waiting");
     } else {
-      // No listener available — put in queue
-      waitingQueue.push(socket.id);
       talkers[socket.id].waitingForNotif = true;
       socket.emit("talker:queued");
     }
@@ -117,14 +115,10 @@ io.on("connection", (socket) => {
     const msg = { role, text, ts: Date.now() };
     session.messages.push(msg);
 
-    // Send to both parties
-if (role === "talker") {
-  socket.emit("chat:message", msg);
-  io.to(session.listenerId).emit("chat:message", msg);
-} else {
-  socket.emit("chat:message", msg);
-  io.to(session.talkerId).emit("chat:message", msg);
-}
+    // Send to sender (confirm) and receiver
+    socket.emit("chat:message", msg);
+    const otherId = role === "talker" ? session.listenerId : session.talkerId;
+    io.to(otherId).emit("chat:message", msg);
 
     // Send to all moderators
     moderators.forEach((modId) =>
