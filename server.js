@@ -122,7 +122,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("talker:join", () => {
-    if (talkers[socket.id] || isInSession(socket.id)) return;
+    // Kalau udah pernah join, bersihkan state lama dulu
+    if (talkers[socket.id]) {
+      waitingQueue = waitingQueue.filter((id) => id !== socket.id);
+      const oldSession = Object.values(sessions).find((s) => s.talkerId === socket.id);
+      if (oldSession) endSessionCleanup(oldSession.sessionId, {});
+      delete talkers[socket.id];
+    }
     talkers[socket.id] = { socketId: socket.id, sessionId: null };
     waitingQueue.push(socket.id);
 
