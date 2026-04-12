@@ -347,14 +347,14 @@
     <div class="success-desc" style="font-size:.84rem;margin-bottom:14px">
       Kalau kamu butuh bicara sekarang dan ada pendengar yang online,<br>kamu bisa langsung masuk ke ruang chat:
     </div>
-    <a href="https://teman-curhat.netlify.app" target="_blank" class="btn-chat-now">
+    <a href="https://dodyshowy-glitch.github.io/teman-curhat-server/" target="_blank" class="btn-chat-now">
       💬 Masuk ke Ruang Curhat Sekarang
     </a>
 
     <div style="margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left">
       <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">🔗 Simpan link ini supaya bisa balik kapanpun:</div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div id="copy-link-text" style="font-size:.82rem;color:var(--gold2);font-family:'Lora',serif;flex:1;word-break:break-all">teman-curhat.netlify.app</div>
+        <div id="copy-link-text" style="font-size:.82rem;color:var(--gold2);font-family:'Lora',serif;flex:1;word-break:break-all">https://dodyshowy-glitch.github.io/teman-curhat-server/</div>
         <button onclick="copyLink()" id="copy-btn" style="background:var(--gold);border:none;border-radius:6px;padding:7px 12px;font-size:.75rem;font-weight:500;cursor:pointer;color:#0f0e0c;white-space:nowrap;font-family:'DM Sans',sans-serif">Salin</button>
       </div>
     </div>
@@ -454,7 +454,7 @@ async function kirimForm() {
 }
 
 function copyLink() {
-  const link = "https://teman-curhat.netlify.app";
+  const link = "https://dodyshowy-glitch.github.io/teman-curhat-server/";
   navigator.clipboard.writeText(link).then(() => {
     const btn = document.getElementById("copy-btn");
     btn.textContent = "Tersalin ✓";
@@ -466,7 +466,7 @@ function copyLink() {
   }).catch(() => {
     // Fallback untuk browser yang tidak support clipboard API
     const el = document.createElement("textarea");
-    el.value = "https://teman-curhat.netlify.app";
+    el.value = "https://dodyshowy-glitch.github.io/teman-curhat-server/";
     document.body.appendChild(el);
     el.select();
     document.execCommand("copy");
