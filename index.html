@@ -687,51 +687,10 @@ function modEndSession(sessionId) {
   }
 }
 
-// ─── FILTER KATA KOTOR ───────────────────────────────────
-const KATA_KOTOR = [
-  "anjing","anjir","anjg","anying","bangsat","bgst","brengsek","bajingan","bjg","keparat",
-  "babi","goblok","gblk","tolol","tlл","idiot","bodoh","tai","t4i","kontol","k0ntol","kntl",
-  "memek","mmk","ngentot","ngt","ng3ntot","jancok","jnck","j4ncok","cok","c0k","asu",
-  "kampret","kmpr","sialan","fuck","f*ck","fck","sh1t","shit","sh*t","damn","ass",
-  "b1tch","bitch","bastard","cunt","c*nt","dick","d1ck","pussy","p*ssy","wtf","stfu"
-];
-
-// Normalisasi teks: hapus spasi antar huruf, ganti angka/simbol umum
-function normalizeText(text) {
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, "")           // hapus semua spasi (a n j i n g -> anjing)
-    .replace(/0/g, "o")            // 0 -> o
-    .replace(/1/g, "i")            // 1 -> i
-    .replace(/3/g, "e")            // 3 -> e
-    .replace(/4/g, "a")            // 4 -> a
-    .replace(/\*/g, "")            // hapus asterisk
-    .replace(/[^a-z]/g, "");       // hapus karakter non-huruf
-}
-
-function containsKataKotor(text) {
-  const normalized = normalizeText(text);
-  const normal = text.toLowerCase();
-  return KATA_KOTOR.some(k => {
-    const kNorm = normalizeText(k);
-    return normalized.includes(kNorm) || normal.includes(k);
-  });
-}
-
 function sendMsg() {
   const input = document.getElementById("chat-input");
   const text = input.value.trim();
   if (!text || !currentSession) return;
-
-  if (containsKataKotor(text)) {
-    showToast("⚠️ Pesan mengandung kata yang tidak pantas. Tolong jaga tutur kata ya 🙏");
-    input.select();
-    return;
-  }
-
-  // Tampilkan pesan langsung di lokal dengan flag isOwn
-  const localMsg = { role: myRole, text, ts: Date.now(), isOwn: true };
-  appendMessage(localMsg);
   socket.emit("chat:message", { sessionId: currentSession, text });
   input.value = "";
   setTimeout(() => input.focus(), 50);
