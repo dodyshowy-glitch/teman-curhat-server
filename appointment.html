@@ -360,12 +360,7 @@
 // KONFIGURASI — EDIT DI SINI
 // ═══════════════════════════════════════════════════════
 const CONFIG = {
-  // Formspree endpoint lo
-  // Cara dapet:
-  // 1. Buka formspree.io → Sign up gratis
-  // 2. Klik "New Form" → kasih nama "Teman Curhat"
-  // 3. Copy endpoint-nya, bentuknya: https://formspree.io/f/XXXXXXXX
-  formspreeUrl: "https://formspree.io/f/xvzvjzpb",
+  web3formsKey: "aef72916-a9d4-424f-b8ee-eb5d5b15c0c2",
 };
 // ═══════════════════════════════════════════════════════
 
@@ -413,14 +408,15 @@ async function kirimForm() {
   const topikStr = selectedTopics.join(", ");
 
   try {
-    const res = await fetch(CONFIG.formspreeUrl, {
+    const res = await fetch("https://api.web3forms.com/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({
+        access_key: CONFIG.web3formsKey,
+        subject: `[Teman Curhat] Pendaftaran Sesi - ${hari} ${jam}`,
         jadwal: `${hari}, ${jam}`,
         topik: topikStr,
         cerita: cerita || "(tidak diisi)",
-        _subject: `[Teman Curhat] Pendaftaran Sesi - ${hari} ${jam}`,
       }),
     });
 
