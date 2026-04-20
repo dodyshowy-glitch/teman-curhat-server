@@ -64,8 +64,8 @@ function endSessionCleanup(sessionId, reason = {}) {
 }
 
 io.on("connection", (socket) => {
-  console.log("Connected:", socket.id);
 
+  // ─── LISTENER ─────────────────────────────────────────
   socket.on("listener:join", ({ secret, alias }) => {
     if (secret !== LISTENER_SECRET) {
       socket.emit("error", { message: "Kode rahasia salah." });
@@ -120,7 +120,9 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ─── TALKER ───────────────────────────────────────────
   socket.on("talker:join", () => {
+    // Bersihkan state lama kalau reconnect
     if (talkers[socket.id]) {
       waitingQueue = waitingQueue.filter((id) => id !== socket.id);
       const oldSession = Object.values(sessions).find((s) => s.talkerId === socket.id);
@@ -141,6 +143,7 @@ io.on("connection", (socket) => {
     broadcastModeratorUpdate();
   });
 
+  // ─── CHAT ─────────────────────────────────────────────
   socket.on("chat:message", ({ sessionId, text }) => {
     const session = sessions[sessionId];
     if (!session) return;
@@ -150,11 +153,7 @@ io.on("connection", (socket) => {
     const msg = { role, text, ts: Date.now() };
     session.messages.push(msg);
 
-    console.log("MSG from", role, "| talkerId:", session.talkerId, "| listenerId:", session.listenerId);
-
-    // Kirim ke pengirim
-    socket.emit("chat:message", msg);
-    // Kirim ke pihak lain
+    // Kirim HANYA ke pihak lain — pengirim sudah tampilkan lokal di frontend
     const otherId = role === "talker" ? session.listenerId : session.talkerId;
     io.to(otherId).emit("chat:message", msg);
 
@@ -163,6 +162,7 @@ io.on("connection", (socket) => {
     );
   });
 
+  // ─── SESSION END ──────────────────────────────────────
   socket.on("session:end", ({ sessionId }) => {
     if (!sessions[sessionId]) return;
     const s = sessions[sessionId];
@@ -170,6 +170,7 @@ io.on("connection", (socket) => {
     endSessionCleanup(sessionId, {});
   });
 
+  // ─── MODERATOR ────────────────────────────────────────
   socket.on("mod:join", ({ secret }) => {
     if (secret !== MODERATOR_SECRET) {
       socket.emit("error", { message: "Password moderator salah." });
@@ -185,6 +186,7 @@ io.on("connection", (socket) => {
     endSessionCleanup(sessionId, { byModerator: true });
   });
 
+  // ─── DISCONNECT ───────────────────────────────────────
   socket.on("disconnect", () => {
     if (listeners[socket.id]) {
       const activeSession = Object.values(sessions).find((s) => s.listenerId === socket.id);
