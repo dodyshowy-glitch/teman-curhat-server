@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const cors = require("cors");
+const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
@@ -11,17 +11,10 @@ const LISTENER_SECRET = process.env.LISTENER_SECRET || "listener123";
 const MODERATOR_SECRET = process.env.MODERATOR_SECRET || "mod999";
 
 const io = new Server(server, {
-  cors: { 
-    origin: "*", 
-    methods: ["GET", "POST"],
-    credentials: false
-  },
+  cors: { origin: "*", methods: ["GET", "POST"], credentials: false },
   allowEIO3: true,
-  transports: ["websocket", "polling"],
 });
 
-// Handle CORS for Express
-app.use(cors());
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -29,11 +22,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from public folder
-const path = require("path");
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/appointment", (req, res) => res.sendFile(path.join(__dirname, "public", "appointment.html")));
+app.get("/", (req, res) => res.send("Teman Curhat Server OK"));
 
 let listeners = {};
 let talkers = {};
@@ -86,7 +75,6 @@ function endSessionCleanup(sessionId, reason = {}) {
 
 io.on("connection", (socket) => {
 
-  // ─── LISTENER ─────────────────────────────────────────
   socket.on("listener:join", ({ secret, alias }) => {
     if (secret !== LISTENER_SECRET) {
       socket.emit("error", { message: "Kode rahasia salah." });
@@ -141,9 +129,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ─── TALKER ───────────────────────────────────────────
   socket.on("talker:join", () => {
-    // Bersihkan state lama kalau reconnect
     if (talkers[socket.id]) {
       waitingQueue = waitingQueue.filter((id) => id !== socket.id);
       const oldSession = Object.values(sessions).find((s) => s.talkerId === socket.id);
@@ -164,7 +150,6 @@ io.on("connection", (socket) => {
     broadcastModeratorUpdate();
   });
 
-  // ─── CHAT ─────────────────────────────────────────────
   socket.on("chat:message", ({ sessionId, text }) => {
     const session = sessions[sessionId];
     if (!session) return;
@@ -174,7 +159,7 @@ io.on("connection", (socket) => {
     const msg = { role, text, ts: Date.now() };
     session.messages.push(msg);
 
-    // Kirim HANYA ke pihak lain — pengirim sudah tampilkan lokal di frontend
+    // Kirim hanya ke pihak lain
     const otherId = role === "talker" ? session.listenerId : session.talkerId;
     io.to(otherId).emit("chat:message", msg);
 
@@ -183,7 +168,6 @@ io.on("connection", (socket) => {
     );
   });
 
-  // ─── SESSION END ──────────────────────────────────────
   socket.on("session:end", ({ sessionId }) => {
     if (!sessions[sessionId]) return;
     const s = sessions[sessionId];
@@ -191,7 +175,6 @@ io.on("connection", (socket) => {
     endSessionCleanup(sessionId, {});
   });
 
-  // ─── MODERATOR ────────────────────────────────────────
   socket.on("mod:join", ({ secret }) => {
     if (secret !== MODERATOR_SECRET) {
       socket.emit("error", { message: "Password moderator salah." });
@@ -207,7 +190,6 @@ io.on("connection", (socket) => {
     endSessionCleanup(sessionId, { byModerator: true });
   });
 
-  // ─── DISCONNECT ───────────────────────────────────────
   socket.on("disconnect", () => {
     if (listeners[socket.id]) {
       const activeSession = Object.values(sessions).find((s) => s.listenerId === socket.id);
