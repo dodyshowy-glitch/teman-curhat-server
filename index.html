@@ -815,46 +815,62 @@ async function kirimFeedback() {
 async function talkerJoin() {
   myRole = "talker";
   myId = genId();
-  // Find available listener
-  const { data: listeners } = await sb.from("listeners").select("*").eq("status", "standby").limit(1);
-  if (!listeners || listeners.length === 0) {
-    await sb.from("queue").insert({ talker_id: myId, status: "waiting" });
-    showScreen("talker-waiting");
-    subscribeTalkerQueue();
-    return;
-  }
-  const listener = listeners[0];
-  const { data: session } = await sb.from("sessions").insert({ talker_id: myId, listener_id: listener.id, status: "pending" }).select().single();
-  currentSessionId = session.id;
-  await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", listener.id);
-  showScreen("talker-pending");
-  subscribeTalkerPending();
-}
 
-function subscribeTalkerPending() {
+  // Subscribe ke channel personal DULU sebelum insert ke DB
+  // supaya tidak ada race condition
+  if (talkerChannel) { sb.removeChannel(talkerChannel); talkerChannel = null; }
   talkerChannel = sb.channel("talker-" + myId);
-  talkerChannel.on("broadcast", { event: "session-accepted" }, () => {
-    document.getElementById("chat-role-label").textContent = "Pendengar";
-    startTimer();
-    subscribeChatChannel();
-    showScreen("chat");
-  }).on("broadcast", { event: "session-rejected" }, () => {
-    showToast("Pendengar tidak tersedia, coba lagi"); showScreen("talker-join");
-  }).subscribe();
-}
-
-function subscribeTalkerQueue() {
-  talkerChannel = sb.channel("talker-queue-" + myId);
-  talkerChannel.on("broadcast", { event: "matched" }, async ({ payload }) => {
-    currentSessionId = payload.sessionId;
-    showScreen("talker-pending");
-    subscribeTalkerPending();
-  }).subscribe();
+  talkerChannel
+    .on("broadcast", { event: "session-accepted" }, ({ payload }) => {
+      if (payload.sessionId) currentSessionId = payload.sessionId;
+      document.getElementById("chat-role-label").textContent = "Pendengar";
+      startTimer();
+      subscribeChatChannel();
+      showScreen("chat");
+    })
+    .on("broadcast", { event: "session-rejected" }, () => {
+      showToast("Pendengar tidak bisa menerima, coba lagi");
+      showScreen("talker-join");
+    })
+    .subscribe(async (status) => {
+      if (status !== "SUBSCRIBED") return;
+      // Channel siap — baru cari listener
+      const { data: avail } = await sb.from("listeners").select("*").eq("status", "standby").limit(1);
+      if (!avail || avail.length === 0) {
+        // Masuk antrian
+        const { error: qErr } = await sb.from("queue").insert({ talker_id: myId, status: "waiting" });
+        if (qErr) { showToast("Gagal masuk antrian: " + qErr.message); return; }
+        showScreen("talker-waiting");
+        // Broadcast ke semua listener standby
+        const gCh = sb.channel("global-listeners");
+        gCh.subscribe(() => {
+          gCh.send({ type: "broadcast", event: "talker-queued", payload: { talkerId: myId } });
+          setTimeout(() => sb.removeChannel(gCh), 2000);
+        });
+        return;
+      }
+      // Ada listener — buat sesi pending
+      const listener = avail[0];
+      const { data: session, error: sErr } = await sb.from("sessions")
+        .insert({ talker_id: myId, listener_id: listener.id, status: "pending" })
+        .select().single();
+      if (sErr) { showToast("Gagal membuat sesi: " + sErr.message); return; }
+      currentSessionId = session.id;
+      await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", listener.id);
+      // Notify listener
+      const lCh = sb.channel("listener-notify-" + listener.id);
+      lCh.subscribe(() => {
+        lCh.send({ type: "broadcast", event: "incoming", payload: { sessionId: session.id } });
+        setTimeout(() => sb.removeChannel(lCh), 3000);
+      });
+      showScreen("talker-pending");
+    });
 }
 
 async function cancelQueue() {
   await sb.from("queue").delete().eq("talker_id", myId);
-  cleanupChannels(); showScreen("landing");
+  cleanupChannels();
+  showScreen("landing");
 }
 
 // ══════════════════════════════════════════════
@@ -879,21 +895,13 @@ async function listenerJoin() {
     document.getElementById("listener-name-label").textContent = alias;
     btn.disabled = false;
     btn.textContent = "Masuk sebagai Listener";
+
+    // Subscribe dulu, setelah siap baru cek queue
+    subscribeListenerChannel(() => {
+      checkQueueForListener();
+    });
+
     showScreen("listener-standby");
-    subscribeListenerChannel();
-    // Check queue
-    const { data: queue } = await sb.from("queue").select("*").eq("status", "waiting").limit(1);
-    if (queue && queue.length > 0) {
-      const qItem = queue[0];
-      const { data: session, error: sessErr } = await sb.from("sessions").insert({ talker_id: qItem.talker_id, listener_id: myListenerId, status: "pending" }).select().single();
-      if (sessErr) throw new Error(sessErr.message);
-      currentSessionId = session.id;
-      await sb.from("queue").update({ status: "matched" }).eq("id", qItem.id);
-      const talkerCh = sb.channel("talker-queue-" + qItem.talker_id);
-      talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "matched", payload: { sessionId: session.id } }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
-      await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", myListenerId);
-      showScreen("listener-incoming");
-    }
   } catch(e) {
     showToast("❌ Gagal masuk: " + e.message);
     btn.disabled = false;
@@ -902,23 +910,76 @@ async function listenerJoin() {
   }
 }
 
-function subscribeListenerChannel() {
-  listenerChannel = sb.channel("listener-" + myListenerId);
-  listenerChannel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "listeners", filter: `id=eq.${myListenerId}` }, async (payload) => {
-    const status = payload.new.status;
-    if (status === "incoming") {
-      currentSessionId = payload.new.session_id;
-      showScreen("listener-incoming");
+function subscribeListenerChannel(onReady) {
+  // Channel notify langsung dari talker
+  if (listenerChannel) { sb.removeChannel(listenerChannel); listenerChannel = null; }
+  listenerChannel = sb.channel("listener-notify-" + myListenerId);
+  listenerChannel
+    .on("broadcast", { event: "incoming" }, ({ payload }) => {
+      if (document.getElementById("screen-listener-standby").classList.contains("active")) {
+        currentSessionId = payload.sessionId;
+        showScreen("listener-incoming");
+      }
+    })
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED" && onReady) onReady();
+    });
+
+  // Channel global — dengar kalau ada talker baru antri
+  const gCh = sb.channel("global-listeners");
+  gCh.on("broadcast", { event: "talker-queued" }, () => {
+    if (myRole === "listener" && document.getElementById("screen-listener-standby").classList.contains("active")) {
+      checkQueueForListener();
     }
   }).subscribe();
+}
+
+async function checkQueueForListener() {
+  // Cek status kita dulu
+  const { data: me } = await sb.from("listeners").select("status").eq("id", myListenerId).single();
+  if (!me || me.status !== "standby") return;
+
+  const { data: queue } = await sb.from("queue").select("*").eq("status", "waiting").order("created_at", { ascending: true }).limit(1);
+  if (!queue || queue.length === 0) return;
+  const qItem = queue[0];
+
+  // Coba update queue ke matched (atomic — kalau gagal berarti listener lain sudah ambil)
+  const { error: lockErr } = await sb.from("queue").update({ status: "matched" }).eq("id", qItem.id).eq("status", "waiting");
+  if (lockErr) return;
+
+  // Buat sesi
+  const { data: session, error: sErr } = await sb.from("sessions")
+    .insert({ talker_id: qItem.talker_id, listener_id: myListenerId, status: "pending" })
+    .select().single();
+  if (sErr) {
+    // Rollback queue
+    await sb.from("queue").update({ status: "waiting" }).eq("id", qItem.id);
+    return;
+  }
+
+  currentSessionId = session.id;
+  await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", myListenerId);
+
+  // Langsung notify talker — channel sudah subscribe dari awal
+  const tCh = sb.channel("talker-" + qItem.talker_id);
+  tCh.subscribe(() => {
+    tCh.send({ type: "broadcast", event: "session-accepted", payload: { sessionId: session.id } });
+    setTimeout(() => sb.removeChannel(tCh), 3000);
+  });
+
+  showScreen("listener-incoming");
 }
 
 async function listenerAccept() {
   await sb.from("sessions").update({ status: "active", started_at: new Date().toISOString() }).eq("id", currentSessionId);
   await sb.from("listeners").update({ status: "busy" }).eq("id", myListenerId);
   const { data: session } = await sb.from("sessions").select("talker_id").eq("id", currentSessionId).single();
-  const talkerCh = sb.channel("talker-" + session.talker_id);
-  talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "session-accepted", payload: {} }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+  // Notify talker
+  const tCh = sb.channel("talker-" + session.talker_id);
+  tCh.subscribe(() => {
+    tCh.send({ type: "broadcast", event: "session-accepted", payload: { sessionId: currentSessionId } });
+    setTimeout(() => sb.removeChannel(tCh), 3000);
+  });
   document.getElementById("chat-role-label").textContent = listenerAlias;
   startTimer();
   subscribeChatChannel();
@@ -929,15 +990,20 @@ async function listenerReject() {
   const { data: session } = await sb.from("sessions").select("talker_id").eq("id", currentSessionId).single();
   await sb.from("sessions").update({ status: "rejected" }).eq("id", currentSessionId);
   await sb.from("listeners").update({ status: "standby", session_id: null }).eq("id", myListenerId);
-  const talkerCh = sb.channel("talker-" + session.talker_id);
-  talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "session-rejected", payload: {} }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+  const tCh = sb.channel("talker-" + session.talker_id);
+  tCh.subscribe(() => {
+    tCh.send({ type: "broadcast", event: "session-rejected", payload: {} });
+    setTimeout(() => sb.removeChannel(tCh), 3000);
+  });
   currentSessionId = null;
   showScreen("listener-standby");
 }
 
 async function listenerLogout() {
   if (myListenerId) await sb.from("listeners").delete().eq("id", myListenerId);
-  cleanupChannels(); myListenerId = null; myRole = null;
+  cleanupChannels();
+  myListenerId = null;
+  myRole = null;
   showScreen("landing");
 }
 
