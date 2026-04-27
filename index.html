@@ -67,8 +67,74 @@
   .bubble.mine { background: var(--gold); color: #0f0e0c; align-self: flex-end; border-bottom-right-radius: 4px; }
   .bubble.theirs { background: var(--surface2); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 4px; }
   .bubble .btime { font-size: .68rem; opacity: .5; margin-top: 4px; }
-  .chat-input-row { display: flex; gap: 8px; }
+
+  /* ── Voice Note Bubble ── */
+  .bubble.voice-bubble { padding: 8px 12px; }
+  .voice-note-player { display: flex; align-items: center; gap: 10px; min-width: 180px; max-width: 240px; }
+  .vn-play-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; flex-shrink: 0; transition: transform .15s, opacity .15s;
+  }
+  .vn-play-btn:active { transform: scale(.9); }
+  .bubble.mine .vn-play-btn { background: rgba(0,0,0,.2); color: #0f0e0c; }
+  .bubble.theirs .vn-play-btn { background: var(--gold); color: #0f0e0c; }
+  .vn-waveform { flex: 1; height: 28px; position: relative; cursor: pointer; }
+  .vn-waveform-bars { display: flex; align-items: center; gap: 2px; height: 100%; }
+  .vn-bar {
+    flex: 1; border-radius: 2px; transition: background .1s;
+    background: rgba(255,255,255,.25);
+  }
+  .bubble.mine .vn-bar { background: rgba(0,0,0,.2); }
+  .vn-bar.played { background: rgba(255,255,255,.7); }
+  .bubble.mine .vn-bar.played { background: rgba(0,0,0,.55); }
+  .vn-duration { font-size: .7rem; opacity: .6; white-space: nowrap; flex-shrink: 0; font-family: 'DM Sans', sans-serif; }
+  .vn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--green); }
+  .bubble.mine .vn-dot { background: rgba(0,0,0,.35); }
+
+  /* ── Recording UI ── */
+  .chat-input-row { display: flex; gap: 8px; position: relative; }
   .chat-input-row input { flex: 1; margin-bottom: 0; }
+
+  /* Hold-to-record overlay */
+  .recording-overlay {
+    display: none; position: absolute; inset: 0;
+    background: var(--surface); border: 1.5px solid var(--red);
+    border-radius: 8px; align-items: center; justify-content: space-between;
+    padding: 0 14px; gap: 10px; z-index: 10;
+    animation: fadeUp .2s ease both;
+  }
+  .recording-overlay.active { display: flex; }
+  .rec-anim { display: flex; align-items: center; gap: 8px; }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 1s ease infinite; }
+  .rec-label { font-size: .82rem; color: var(--red); }
+  .rec-timer { font-family: 'Lora', serif; font-size: .9rem; color: var(--cream); }
+  .rec-cancel { font-size: .75rem; color: var(--muted); cursor: pointer; }
+  .rec-cancel:hover { color: var(--red); }
+
+  /* Mic button states */
+  .mic-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 14px; cursor: pointer;
+    font-size: 1.1rem; transition: all .2s; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    min-width: 44px; user-select: none; -webkit-user-select: none;
+    touch-action: none;
+  }
+  .mic-btn.recording { border-color: var(--red); color: var(--red); background: rgba(201,96,96,.1); transform: scale(1.05); }
+  .mic-btn.has-draft { border-color: var(--green); color: var(--green); }
+
+  /* Draft preview bar */
+  .draft-bar {
+    display: none; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 8px; animation: fadeUp .2s ease both;
+  }
+  .draft-bar.visible { display: flex; }
+  .draft-bar-label { font-size: .78rem; color: var(--muted); flex: 1; }
+  .draft-play { font-size: .85rem; cursor: pointer; color: var(--gold); }
+  .draft-discard { font-size: .75rem; cursor: pointer; color: var(--red); }
+
   .voice-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0 14px; cursor: pointer; font-size: 1.1rem; transition: all .2s; color: var(--muted); }
   .voice-btn.listening { border-color: var(--red); color: var(--red); animation: pulse 1s ease infinite; }
   .mod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
@@ -114,13 +180,13 @@
     <div class="card"><h2>Halo 👋</h2><p class="sub">Tidak perlu nama. Tidak ada yang menghakimi di sini.</p><p style="font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:20px">Kami akan menghubungkan kamu dengan seorang pendengar yang siap menemani. Semua percakapan bersifat anonim dan tidak disimpan.</p><button class="btn btn-primary btn-full" onclick="talkerJoin()">Mulai Cerita</button></div>
   </div>
 
-  <!-- TALKER WAITING (antrian) -->
+  <!-- TALKER WAITING -->
   <div class="screen" id="screen-talker-waiting">
     <div class="status-box"><div class="status-icon pulse">🕰️</div><div class="status-title">Mencari pendengar...</div><div class="status-desc">Semua pendengar sedang sibuk.<br>Kamu akan diberi tahu saat ada yang tersedia.</div></div>
     <button class="btn btn-ghost btn-full" onclick="cancelQueue()">Batalkan</button>
   </div>
 
-  <!-- TALKER PENDING (menunggu konfirmasi) -->
+  <!-- TALKER PENDING -->
   <div class="screen" id="screen-talker-pending">
     <div class="status-box"><div class="status-icon pulse">✨</div><div class="status-title">Pendengar ditemukan!</div><div class="status-desc">Menunggu konfirmasi pendengar...</div></div>
   </div>
@@ -141,10 +207,27 @@
       </div>
     </div>
     <div class="chat-box" id="chat-box"></div>
+
+    <!-- Draft voice note preview -->
+    <div class="draft-bar" id="draft-bar">
+      <span style="font-size:1rem">🎙️</span>
+      <span class="draft-bar-label" id="draft-label">Voice note siap dikirim</span>
+      <span class="draft-play" id="draft-play-btn" onclick="playDraft()" title="Putar">▶</span>
+      <span class="draft-discard" onclick="discardDraft()" title="Hapus">✕</span>
+    </div>
+
     <div class="chat-input-row">
-      <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Klik untuk bicara">🎤</button>
-      <input type="text" id="chat-input" placeholder="Ketik atau tekan 🎤 untuk bicara..." onkeydown="if(event.key==='Enter')sendMsg()" />
-      <button class="btn btn-primary" onclick="sendMsg()">→</button>
+      <!-- Mic button — tap to toggle recording -->
+      <button class="mic-btn" id="mic-btn" onclick="toggleRecording()" title="Tahan untuk rekam voice note">🎤</button>
+      <input type="text" id="chat-input" placeholder="Ketik atau rekam 🎤 voice note..." onkeydown="if(event.key==='Enter')sendMsg()" />
+      <button class="btn btn-primary" id="send-btn" onclick="handleSendBtn()">→</button>
+    </div>
+    <!-- Recording indicator row -->
+    <div id="rec-status" style="display:none;align-items:center;gap:8px;margin-top:8px;padding:6px 12px;background:rgba(201,96,96,.1);border:1px solid rgba(201,96,96,.3);border-radius:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s ease infinite;flex-shrink:0"></div>
+      <span style="font-size:.78rem;color:var(--red);flex:1">Merekam… Ketuk 🎤 untuk berhenti</span>
+      <span style="font-size:.78rem;color:var(--cream);font-family:'Lora',serif" id="rec-timer-label">0:00</span>
+      <span style="font-size:.72rem;color:var(--muted);cursor:pointer" onclick="cancelRecording()">Batal</span>
     </div>
   </div>
 
@@ -219,28 +302,41 @@
 // ══════════════════════════════════════════════
 const SUPABASE_URL = "https://acetdjwzrydmoonzpevz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZXRkand6cnlkbW9vbnpwZXZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTE2NDYsImV4cCI6MjA5MjgyNzY0Nn0.xOqG_ciBo2LpZGcZ5woZQrXybPdQ9eb3hMn3cwYt2wU";
-const LISTENER_SECRET = "listener123";
-const MODERATOR_SECRET = "mod999";
+const LISTENER_SECRET = "gereja2026";
+const MODERATOR_SECRET = "mod123";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let myRole = null;          // 'talker' | 'listener' | 'mod'
-let myId = null;            // unique id untuk session ini
-let myListenerId = null;    // untuk listener: id di tabel listeners
+let myRole = null;
+let myId = null;
+let myListenerId = null;
 let currentSessionId = null;
 let listenerAlias = "";
 let selectedMood = null;
 let timerInterval = null;
 let timerSeconds = 0;
-const SESSION_DURATION = 90 * 60; // 90 menit
+const SESSION_DURATION = 90 * 60;
 
-// Supabase Realtime channels
 let chatChannel = null;
 let listenerChannel = null;
 let talkerChannel = null;
+
+// ── Voice Note State ──
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let draftBlob = null;       // in-memory draft (NOT saved anywhere)
+let draftAudio = null;      // Audio object for preview
+let recTimerInterval = null;
+let recSeconds = 0;
+// Map voiceNoteId → blob URL for playback in chat
+const voiceNoteBlobMap = {};
+// Currently playing audio
+let currentlyPlaying = null;
+let currentlyPlayingId = null;
 
 // ══════════════════════════════════════════════
 // UTILS
@@ -272,6 +368,12 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
+function fmtDuration(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 // ══════════════════════════════════════════════
 // SCREEN NAV
 // ══════════════════════════════════════════════
@@ -280,404 +382,27 @@ function resetApp() {
   stopVoice();
   cleanupChannels();
   currentSessionId = null;
-  myRole = null;
   myId = null;
   myListenerId = null;
-  listenerAlias = "";
+  myRole = null;
   selectedMood = null;
+  // Revoke all blob URLs (memory cleanup)
+  Object.values(voiceNoteBlobMap).forEach(url => URL.revokeObjectURL(url));
+  Object.keys(voiceNoteBlobMap).forEach(k => delete voiceNoteBlobMap[k]);
+  discardDraft();
   document.getElementById("chat-box").innerHTML = "";
-  document.getElementById("feedback-text").value = "";
-  document.getElementById("feedback-done").style.display = "none";
+  document.getElementById("chat-input").value = "";
   document.getElementById("feedback-section").style.display = "block";
+  document.getElementById("feedback-done").style.display = "none";
+  document.getElementById("feedback-text").value = "";
   document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("selected"));
   showScreen("landing");
 }
 
-// ══════════════════════════════════════════════
-// TALKER FLOW
-// ══════════════════════════════════════════════
-async function talkerJoin() {
-  myRole = "talker";
-  myId = genId();
-
-  // Masuk ke antrian
-  const { error } = await sb.from("queue").insert({ talker_id: myId });
-  if (error) { showToast("❌ Gagal bergabung, coba lagi"); return; }
-
-  // Cari listener available
-  const { data: listeners } = await sb.from("listeners")
-    .select("*").eq("busy", false).limit(1);
-
-  if (listeners && listeners.length > 0) {
-    showScreen("talker-pending");
-    notifyListeners();
-  } else {
-    showScreen("talker-waiting");
-  }
-
-  // Subscribe ke channel khusus talker ini
-  talkerChannel = sb.channel("talker:" + myId)
-    .on("broadcast", { event: "session_start" }, ({ payload }) => {
-      startChatSession(payload.session_id, false);
-    })
-    .on("broadcast", { event: "no_listener" }, () => {
-      showScreen("talker-waiting");
-    })
-    .subscribe();
-
-  // Polling jika listener baru muncul (fallback)
-  startListenerPolling();
-}
-
-let listenerPollInterval = null;
-function startListenerPolling() {
-  listenerPollInterval = setInterval(async () => {
-    if (currentSessionId) { clearInterval(listenerPollInterval); return; }
-    const { data } = await sb.from("listeners").select("*").eq("busy", false).limit(1);
-    if (data && data.length > 0) {
-      notifyListeners();
-    }
-  }, 5000);
-}
-
-async function notifyListeners() {
-  // Broadcast ke channel listeners bahwa ada talker waiting
-  await sb.channel("listeners-global").send({
-    type: "broadcast",
-    event: "talker_waiting",
-    payload: { talker_id: myId }
-  });
-}
-
-async function cancelQueue() {
-  if (listenerPollInterval) clearInterval(listenerPollInterval);
-  await sb.from("queue").delete().eq("talker_id", myId);
-  cleanupChannels();
-  showScreen("landing");
-}
-
-// ══════════════════════════════════════════════
-// LISTENER FLOW
-// ══════════════════════════════════════════════
-async function listenerJoin() {
-  const alias = document.getElementById("listener-alias").value.trim();
-  const secret = document.getElementById("listener-secret").value.trim();
-
-  if (!alias) { showToast("Masukkan nama panggilanmu"); return; }
-  if (secret !== LISTENER_SECRET) { showToast("❌ Kode rahasia salah"); return; }
-
-  myRole = "listener";
-  myId = genId();
-  listenerAlias = alias;
-
-  // Upsert listener ke DB
-  const { data, error } = await sb.from("listeners").insert({
-    id: myId,
-    alias: alias,
-    busy: false,
-    last_seen: new Date().toISOString()
-  }).select().single();
-
-  if (error) { showToast("❌ Gagal masuk, coba lagi"); return; }
-  myListenerId = myId;
-
-  document.getElementById("listener-name-label").textContent = alias;
-  showScreen("listener-standby");
-
-  // Subscribe ke notifikasi global
-  listenerChannel = sb.channel("listeners-global")
-    .on("broadcast", { event: "talker_waiting" }, ({ payload }) => {
-      if (currentSessionId) return; // sudah di sesi
-      pendingTalkerId = payload.talker_id;
-      showScreen("listener-incoming");
-    })
-    .subscribe();
-
-  // Cek apakah ada yang sudah antri
-  const { data: queue } = await sb.from("queue").select("*").order("joined_at").limit(1);
-  if (queue && queue.length > 0) {
-    pendingTalkerId = queue[0].talker_id;
-    showScreen("listener-incoming");
-  }
-
-  // Heartbeat
-  startListenerHeartbeat();
-}
-
-let pendingTalkerId = null;
-let heartbeatInterval = null;
-
-function startListenerHeartbeat() {
-  heartbeatInterval = setInterval(async () => {
-    if (!myListenerId) return;
-    await sb.from("listeners").update({ last_seen: new Date().toISOString() })
-      .eq("id", myListenerId);
-  }, 30000);
-}
-
-async function listenerAccept() {
-  if (!pendingTalkerId) { showScreen("listener-standby"); return; }
-
-  // Ambil talker dari queue
-  const { data: queueItems } = await sb.from("queue")
-    .select("*").eq("talker_id", pendingTalkerId).limit(1);
-
-  if (!queueItems || queueItems.length === 0) {
-    showToast("Talker sudah tidak tersedia");
-    pendingTalkerId = null;
-    // Cek apakah ada antrian lain
-    const { data: nextQueue } = await sb.from("queue").select("*").order("joined_at").limit(1);
-    if (nextQueue && nextQueue.length > 0) {
-      pendingTalkerId = nextQueue[0].talker_id;
-      showScreen("listener-incoming");
-    } else {
-      showScreen("listener-standby");
-    }
-    return;
-  }
-
-  const talkerId = pendingTalkerId;
-  pendingTalkerId = null;
-
-  // Buat session
-  const sessionId = crypto.randomUUID ? crypto.randomUUID() : genId();
-  const { error: sessErr } = await sb.from("sessions").insert({
-    id: sessionId,
-    talker_id: talkerId,
-    listener_id: myListenerId,
-    status: "active",
-    start_time: new Date().toISOString()
-  });
-
-  if (sessErr) { showToast("❌ Gagal membuat sesi"); return; }
-
-  // Tandai listener sebagai busy
-  await sb.from("listeners").update({ busy: true }).eq("id", myListenerId);
-
-  // Hapus dari queue
-  await sb.from("queue").delete().eq("talker_id", talkerId);
-
-  // Notify talker via broadcast
-  await sb.channel("talker:" + talkerId).send({
-    type: "broadcast",
-    event: "session_start",
-    payload: { session_id: sessionId }
-  });
-
-  // Mulai sesi untuk listener
-  startChatSession(sessionId, true);
-}
-
-async function listenerReject() {
-  pendingTalkerId = null;
-  // Cek antrian berikutnya
-  const { data: queue } = await sb.from("queue").select("*").order("joined_at").limit(1);
-  if (queue && queue.length > 0) {
-    pendingTalkerId = queue[0].talker_id;
-    showScreen("listener-incoming");
-  } else {
-    showScreen("listener-standby");
-  }
-}
-
-async function listenerLogout() {
-  if (myListenerId) {
-    await sb.from("listeners").delete().eq("id", myListenerId);
-  }
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
-  cleanupChannels();
-  myListenerId = null;
-  myRole = null;
-  showScreen("landing");
-}
-
-// ══════════════════════════════════════════════
-// CHAT SESSION
-// ══════════════════════════════════════════════
-async function startChatSession(sessionId, isListener) {
-  currentSessionId = sessionId;
-  myRole = isListener ? "listener" : "talker";
-  if (listenerPollInterval) clearInterval(listenerPollInterval);
-
-  document.getElementById("chat-role-label").textContent = isListener
-    ? "Sebagai Pendengar" : "Cerita kamu aman di sini";
-  document.getElementById("chat-box").innerHTML = "";
-  showScreen("chat");
-  startTimer();
-
-  // Subscribe ke pesan realtime
-  chatChannel = sb.channel("chat:" + sessionId)
-    .on("broadcast", { event: "message" }, ({ payload }) => {
-      const isMine = payload.sender_id === myId;
-      if (!isMine) appendMessage(payload.text, false, payload.ts);
-    })
-    .on("broadcast", { event: "session_end" }, ({ payload }) => {
-      handleSessionEnded(payload);
-    })
-    .subscribe();
-
-  // Load pesan sebelumnya jika ada
-  const { data: msgs } = await sb.from("messages")
-    .select("*").eq("session_id", sessionId).order("ts");
-  if (msgs) msgs.forEach(m => {
-    const isMine = (isListener && m.role === "listener") || (!isListener && m.role === "talker");
-    appendMessage(m.text, isMine, m.ts);
-  });
-}
-
-async function sendMsg() {
-  const input = document.getElementById("chat-input");
-  const text = input.value.trim();
-  if (!text || !currentSessionId) return;
-  input.value = "";
-
-  const ts = Date.now();
-  const role = myRole;
-
-  appendMessage(text, true, ts);
-
-  // Simpan ke DB
-  await sb.from("messages").insert({
-    session_id: currentSessionId,
-    role: role,
-    text: text,
-    ts: ts
-  });
-
-  // Broadcast ke pihak lain
-  await sb.channel("chat:" + currentSessionId).send({
-    type: "broadcast",
-    event: "message",
-    payload: { text, ts, sender_id: myId, role }
-  });
-}
-
-function appendMessage(text, isMine, ts) {
-  const box = document.getElementById("chat-box");
-  const div = document.createElement("div");
-  div.className = "bubble " + (isMine ? "mine" : "theirs");
-  div.innerHTML = `${text}<div class="btime">${fmtTime(ts)}</div>`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-
-async function endSession() {
-  if (!currentSessionId) return;
-  const sessionId = currentSessionId;
-
-  // Broadcast end ke keduanya
-  await sb.channel("chat:" + sessionId).send({
-    type: "broadcast",
-    event: "session_end",
-    payload: {
-      listenerLeft: myRole === "listener",
-      talkerLeft: myRole === "talker"
-    }
-  });
-
-  handleSessionEnded({
-    listenerLeft: myRole === "listener",
-    talkerLeft: myRole === "talker"
-  });
-}
-
-async function handleSessionEnded(payload = {}) {
-  stopTimer();
-  stopVoice();
-
-  if (currentSessionId) {
-    // Update status sesi di DB
-    await sb.from("sessions").update({ status: "ended" }).eq("id", currentSessionId);
-
-    // Bebaskan listener
-    if (myRole === "listener" && myListenerId) {
-      await sb.from("listeners").update({ busy: false }).eq("id", myListenerId);
-    }
-  }
-
-  currentSessionId = null;
-  cleanupChatChannel();
-
-  if (myRole === "listener") {
-    showToast("Sesi selesai");
-    setTimeout(() => showScreen("listener-standby"), 800);
-    // Cek antrian baru
-    setTimeout(async () => {
-      const { data: queue } = await sb.from("queue").select("*").order("joined_at").limit(1);
-      if (queue && queue.length > 0) {
-        pendingTalkerId = queue[0].talker_id;
-        showScreen("listener-incoming");
-      }
-    }, 1000);
-  } else {
-    let msg = "Terima kasih sudah mau bercerita.<br>Kamu tidak sendirian. 🙏";
-    if (payload.listenerLeft) msg = "Pendengar telah meninggalkan sesi.";
-    document.getElementById("ended-msg").innerHTML = msg;
-    selectedMood = null;
-    document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("selected"));
-    document.getElementById("feedback-text").value = "";
-    document.getElementById("feedback-btn").disabled = false;
-    document.getElementById("feedback-btn").textContent = "Kirim Feedback →";
-    showScreen("ended");
-  }
-}
-
-// ══════════════════════════════════════════════
-// MODERATOR
-// ══════════════════════════════════════════════
-async function modJoin() {
-  const secret = document.getElementById("mod-secret").value.trim();
-  if (secret !== MODERATOR_SECRET) { showToast("❌ Password salah"); return; }
-  myRole = "mod";
-  showScreen("mod-dashboard");
-  await modRefresh();
-}
-
-async function modRefresh() {
-  const [{ data: listeners }, { data: sessions }, { data: queue }] = await Promise.all([
-    sb.from("listeners").select("*"),
-    sb.from("sessions").select("*").eq("status", "active"),
-    sb.from("queue").select("*")
-  ]);
-
-  document.getElementById("mod-listener-count").textContent = listeners?.filter(l => !l.busy).length || 0;
-  document.getElementById("mod-session-count").textContent = sessions?.length || 0;
-  document.getElementById("mod-queue-count").textContent = queue?.length || 0;
-  document.getElementById("mod-talker-count").textContent = queue?.length || 0;
-
-  const container = document.getElementById("mod-sessions");
-  if (!sessions || sessions.length === 0) {
-    container.innerHTML = '<div class="empty-state">Belum ada sesi aktif</div>';
-    return;
-  }
-
-  container.innerHTML = sessions.map(s => {
-    const listener = listeners?.find(l => l.id === s.listener_id);
-    const dur = Math.floor((Date.now() - new Date(s.start_time)) / 60000);
-    return `
-      <div class="session-item">
-        <div class="session-info">
-          <div class="si-title"><span class="dot dot-green"></span>${listener?.alias || "Listener"}</div>
-          <div class="si-sub">Durasi: ${dur} menit</div>
-        </div>
-        <button class="btn btn-danger" style="padding:6px 12px;font-size:.75rem" onclick="modEndSession('${s.id}','${s.talker_id}','${s.listener_id}')">Akhiri</button>
-      </div>`;
-  }).join("");
-}
-
-async function modEndSession(sessionId, talkerId, listenerId) {
-  // Broadcast ke sesi
-  await sb.channel("chat:" + sessionId).send({
-    type: "broadcast",
-    event: "session_end",
-    payload: { byModerator: true }
-  });
-
-  await sb.from("sessions").update({ status: "ended" }).eq("id", sessionId);
-  await sb.from("listeners").update({ busy: false }).eq("id", listenerId);
-
-  showToast("Sesi diakhiri");
-  await modRefresh();
+function cleanupChannels() {
+  if (chatChannel) { sb.removeChannel(chatChannel); chatChannel = null; }
+  if (listenerChannel) { sb.removeChannel(listenerChannel); listenerChannel = null; }
+  if (talkerChannel) { sb.removeChannel(talkerChannel); talkerChannel = null; }
 }
 
 // ══════════════════════════════════════════════
@@ -688,17 +413,14 @@ function startTimer() {
   updateTimerUI();
   timerInterval = setInterval(() => {
     timerSeconds--;
-    if (timerSeconds <= 0) {
-      stopTimer();
-      endSession();
-      return;
-    }
     updateTimerUI();
+    if (timerSeconds <= 0) { endSession(); }
   }, 1000);
 }
 
 function stopTimer() {
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  clearInterval(timerInterval);
+  timerInterval = null;
 }
 
 function updateTimerUI() {
@@ -706,111 +428,559 @@ function updateTimerUI() {
   const m = Math.floor((timerSeconds % 3600) / 60);
   const s = timerSeconds % 60;
   document.getElementById("timer-label").textContent =
-    `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    `${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
   const pct = (timerSeconds / SESSION_DURATION) * 100;
   document.getElementById("timer-bar").style.width = pct + "%";
-  if (pct < 20) document.getElementById("timer-label").style.color = "var(--red)";
+  document.getElementById("timer-bar").style.background =
+    timerSeconds < 300 ? "var(--red)" : timerSeconds < 900 ? "#e8a84c" : "var(--gold)";
 }
 
 // ══════════════════════════════════════════════
-// VOICE
+// SPEECH-TO-TEXT (legacy voice btn, kept for compat)
 // ══════════════════════════════════════════════
 let recognition = null;
 let isListening = false;
 
+function stopVoice() {
+  if (recognition) { try { recognition.stop(); } catch(e){} }
+  isListening = false;
+}
+
 function toggleVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showToast("Browser tidak support voice input"); return;
+    showToast("Browser tidak mendukung voice input"); return;
   }
-  if (isListening) { stopVoice(); return; }
-
+  if (isListening) {
+    recognition.stop(); isListening = false;
+    document.getElementById("voice-btn") && (document.getElementById("voice-btn").classList.remove("listening"));
+    return;
+  }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
-  recognition.lang = "id-ID";
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onstart = () => {
-    isListening = true;
-    document.getElementById("voice-btn").classList.add("listening");
-  };
-  recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    document.getElementById("chat-input").value = text;
+  recognition.lang = "id-ID"; recognition.continuous = false; recognition.interimResults = false;
+  recognition.onresult = e => {
+    document.getElementById("chat-input").value = e.results[0][0].transcript;
   };
   recognition.onend = () => {
     isListening = false;
-    document.getElementById("voice-btn").classList.remove("listening");
+    document.getElementById("voice-btn") && (document.getElementById("voice-btn").classList.remove("listening"));
   };
-  recognition.onerror = () => {
-    isListening = false;
-    document.getElementById("voice-btn").classList.remove("listening");
-  };
-  recognition.start();
+  recognition.start(); isListening = true;
+  document.getElementById("voice-btn") && (document.getElementById("voice-btn").classList.add("listening"));
 }
 
-function stopVoice() {
-  if (recognition) { recognition.abort(); recognition = null; }
-  isListening = false;
-  const btn = document.getElementById("voice-btn");
-  if (btn) btn.classList.remove("listening");
+// ══════════════════════════════════════════════
+// VOICE NOTE — RECORDING
+// ══════════════════════════════════════════════
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  if (draftBlob) {
+    showToast("Kirim atau hapus voice note dulu ya 😊");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMimeType() });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      handleRecordingDone();
+    };
+    mediaRecorder.start(100);
+    isRecording = true;
+    recSeconds = 0;
+    updateMicBtn();
+    showRecStatus(true);
+    recTimerInterval = setInterval(() => {
+      recSeconds++;
+      document.getElementById("rec-timer-label").textContent = fmtDuration(recSeconds);
+      if (recSeconds >= 180) stopRecording(); // max 3 min
+    }, 1000);
+  } catch (err) {
+    showToast("Izin mikrofon diperlukan 🎤");
+    console.error(err);
+  }
+}
+
+function stopRecording() {
+  if (!isRecording || !mediaRecorder) return;
+  clearInterval(recTimerInterval);
+  isRecording = false;
+  mediaRecorder.stop();
+  showRecStatus(false);
+  updateMicBtn();
+}
+
+function cancelRecording() {
+  if (!isRecording || !mediaRecorder) return;
+  clearInterval(recTimerInterval);
+  isRecording = false;
+  mediaRecorder.onstop = () => {}; // suppress handler
+  try { mediaRecorder.stop(); } catch(e){}
+  // stop tracks
+  try { mediaRecorder.stream && mediaRecorder.stream.getTracks().forEach(t => t.stop()); } catch(e){}
+  showRecStatus(false);
+  updateMicBtn();
+  audioChunks = [];
+}
+
+function handleRecordingDone() {
+  if (audioChunks.length === 0) return;
+  const mimeType = getSupportedMimeType();
+  draftBlob = new Blob(audioChunks, { type: mimeType });
+  const url = URL.createObjectURL(draftBlob);
+  draftAudio = new Audio(url);
+  showDraftBar();
+  updateMicBtn();
+}
+
+function getSupportedMimeType() {
+  const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4'];
+  for (const t of types) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function showRecStatus(show) {
+  const el = document.getElementById("rec-status");
+  el.style.display = show ? "flex" : "none";
+  if (show) document.getElementById("rec-timer-label").textContent = "0:00";
+}
+
+function updateMicBtn() {
+  const btn = document.getElementById("mic-btn");
+  if (!btn) return;
+  btn.classList.toggle("recording", isRecording);
+  btn.classList.toggle("has-draft", !isRecording && !!draftBlob);
+  btn.textContent = isRecording ? "⏹" : draftBlob ? "🎙️" : "🎤";
+  btn.title = isRecording ? "Ketuk untuk berhenti" : draftBlob ? "Voice note siap" : "Ketuk untuk rekam voice note";
+}
+
+// ── Draft bar ──
+function showDraftBar() {
+  const bar = document.getElementById("draft-bar");
+  bar.classList.add("visible");
+  document.getElementById("draft-label").textContent =
+    `Voice note ${fmtDuration(recSeconds)} — siap dikirim`;
+}
+
+function playDraft() {
+  if (!draftAudio) return;
+  const btn = document.getElementById("draft-play-btn");
+  if (!draftAudio.paused) {
+    draftAudio.pause(); draftAudio.currentTime = 0; btn.textContent = "▶"; return;
+  }
+  draftAudio.play();
+  btn.textContent = "⏸";
+  draftAudio.onended = () => btn.textContent = "▶";
+}
+
+function discardDraft() {
+  if (draftAudio) { draftAudio.pause(); draftAudio = null; }
+  if (draftBlob) { draftBlob = null; }
+  const bar = document.getElementById("draft-bar");
+  if (bar) bar.classList.remove("visible");
+  updateMicBtn();
+}
+
+// ══════════════════════════════════════════════
+// SEND HANDLER
+// ══════════════════════════════════════════════
+function handleSendBtn() {
+  if (draftBlob) {
+    sendVoiceNote();
+  } else {
+    sendMsg();
+  }
+}
+
+async function sendVoiceNote() {
+  if (!draftBlob || !currentSessionId) return;
+  const vnId = genId();
+  const duration = recSeconds;
+  // Store blob in local map (in-memory only, not persisted)
+  const url = URL.createObjectURL(draftBlob);
+  voiceNoteBlobMap[vnId] = url;
+
+  // Encode blob as base64 for sending over Realtime
+  const arrayBuffer = await draftBlob.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const mimeType = getSupportedMimeType();
+
+  discardDraft();
+
+  // Optimistic local render
+  appendVoiceNote(vnId, myRole, duration, true, url);
+
+  // Broadcast to peer via Realtime
+  chatChannel.send({
+    type: "broadcast",
+    event: "voice_note",
+    payload: { vnId, role: myRole, duration, base64, mimeType, ts: Date.now() }
+  });
+}
+
+// ══════════════════════════════════════════════
+// VOICE NOTE — PLAYER RENDERING
+// ══════════════════════════════════════════════
+function appendVoiceNote(vnId, senderRole, duration, isMine, blobUrl) {
+  const box = document.getElementById("chat-box");
+  const div = document.createElement("div");
+  div.className = `bubble voice-bubble ${isMine ? "mine" : "theirs"}`;
+  div.dataset.vnid = vnId;
+
+  const bars = generateWaveBars(vnId, isMine);
+
+  div.innerHTML = `
+    <div class="voice-note-player">
+      <button class="vn-play-btn" id="vn-play-${vnId}" onclick="toggleVnPlayback('${vnId}')">▶</button>
+      <div class="vn-waveform" onclick="seekVn(event,'${vnId}')">
+        <div class="vn-waveform-bars" id="vn-bars-${vnId}">${bars}</div>
+      </div>
+      <span class="vn-duration" id="vn-dur-${vnId}">${fmtDuration(duration)}</span>
+    </div>
+    <div class="btime">${fmtTime(Date.now())} · 🎙️</div>
+  `;
+
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+
+  // Attach audio if we have blobUrl
+  if (blobUrl) {
+    attachVnAudio(vnId, blobUrl, duration);
+  }
+}
+
+function generateWaveBars(vnId, isMine) {
+  // Generate ~24 fake waveform bars with random heights
+  let out = "";
+  for (let i = 0; i < 24; i++) {
+    const h = 20 + Math.random() * 60; // 20%–80%
+    out += `<div class="vn-bar" style="height:${h}%" data-idx="${i}"></div>`;
+  }
+  return out;
+}
+
+function attachVnAudio(vnId, blobUrl, totalDuration) {
+  const audio = new Audio(blobUrl);
+  audio.vnId = vnId;
+
+  audio.ontimeupdate = () => {
+    const pct = audio.duration ? audio.currentTime / audio.duration : 0;
+    updateVnProgress(vnId, pct, audio.currentTime, totalDuration);
+  };
+
+  audio.onended = () => {
+    setVnPlayBtn(vnId, "▶");
+    updateVnProgress(vnId, 0, 0, totalDuration);
+    if (currentlyPlayingId === vnId) { currentlyPlaying = null; currentlyPlayingId = null; }
+  };
+
+  // Store on blob map element for retrieval
+  voiceNoteBlobMap["_audio_" + vnId] = audio;
+}
+
+function toggleVnPlayback(vnId) {
+  const audio = voiceNoteBlobMap["_audio_" + vnId];
+  if (!audio) { showToast("Audio tidak tersedia di sesi ini"); return; }
+
+  // Pause any currently playing
+  if (currentlyPlaying && currentlyPlayingId !== vnId) {
+    currentlyPlaying.pause();
+    setVnPlayBtn(currentlyPlayingId, "▶");
+  }
+
+  if (audio.paused) {
+    audio.play();
+    setVnPlayBtn(vnId, "⏸");
+    currentlyPlaying = audio;
+    currentlyPlayingId = vnId;
+  } else {
+    audio.pause();
+    setVnPlayBtn(vnId, "▶");
+    currentlyPlaying = null;
+    currentlyPlayingId = null;
+  }
+}
+
+function seekVn(e, vnId) {
+  const audio = voiceNoteBlobMap["_audio_" + vnId];
+  if (!audio || !audio.duration) return;
+  const waveEl = e.currentTarget;
+  const rect = waveEl.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+}
+
+function updateVnProgress(vnId, pct, currentTime, totalDuration) {
+  const barsEl = document.getElementById("vn-bars-" + vnId);
+  const durEl = document.getElementById("vn-dur-" + vnId);
+  if (!barsEl) return;
+  const bars = barsEl.querySelectorAll(".vn-bar");
+  const playedCount = Math.floor(pct * bars.length);
+  bars.forEach((b, i) => b.classList.toggle("played", i < playedCount));
+  if (durEl) durEl.textContent = pct > 0 ? fmtDuration(Math.round(currentTime)) : fmtDuration(totalDuration);
+}
+
+function setVnPlayBtn(vnId, icon) {
+  const btn = document.getElementById("vn-play-" + vnId);
+  if (btn) btn.textContent = icon;
+}
+
+// Receive voice note from peer (base64 → blob)
+function receiveVoiceNote(payload) {
+  const { vnId, role, duration, base64, mimeType } = payload;
+  const isMine = role === myRole;
+  if (isMine) return; // already rendered optimistically
+
+  // Decode base64 → Blob
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    voiceNoteBlobMap[vnId] = url;
+    appendVoiceNote(vnId, role, duration, false, url);
+  } catch(e) {
+    console.error("Voice note decode error", e);
+  }
+}
+
+// ══════════════════════════════════════════════
+// CHAT TEXT
+// ══════════════════════════════════════════════
+function appendMsg(text, isMine, ts) {
+  const box = document.getElementById("chat-box");
+  const div = document.createElement("div");
+  div.className = "bubble " + (isMine ? "mine" : "theirs");
+  div.innerHTML = `${text}<div class="btime">${fmtTime(ts || Date.now())}</div>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMsg() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text || !currentSessionId) return;
+  input.value = "";
+  appendMsg(text, true, Date.now());
+  chatChannel.send({ type: "broadcast", event: "message", payload: { text, role: myRole, ts: Date.now() } });
+}
+
+// ══════════════════════════════════════════════
+// SESSION END
+// ══════════════════════════════════════════════
+async function endSession() {
+  stopTimer();
+  if (chatChannel) chatChannel.send({ type: "broadcast", event: "end", payload: { role: myRole } });
+  if (currentSessionId) await sb.from("sessions").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", currentSessionId);
+  if (myRole === "listener" && myListenerId) await sb.from("listeners").update({ status: "standby" }).eq("id", myListenerId);
+  cleanupChannels();
+  // Stop any playing audio
+  if (currentlyPlaying) { try { currentlyPlaying.pause(); } catch(e){} currentlyPlaying = null; currentlyPlayingId = null; }
+  showScreen("ended");
 }
 
 // ══════════════════════════════════════════════
 // FEEDBACK
 // ══════════════════════════════════════════════
-function pilihMood(btn) {
+function pilihMood(el) {
   document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("selected"));
-  btn.classList.add("selected");
-  selectedMood = btn.dataset.mood;
+  el.classList.add("selected");
+  selectedMood = el.dataset.mood;
 }
 
 async function kirimFeedback() {
   const text = document.getElementById("feedback-text").value.trim();
-  const btn = document.getElementById("feedback-btn");
-  btn.disabled = true;
-  btn.textContent = "Mengirim...";
-
-  // Simpan ke Supabase (opsional — bisa juga lewat web3forms)
-  // Untuk sekarang cukup tampilkan done screen
+  if (!selectedMood && !text) { showToast("Pilih mood atau tulis sesuatu dulu ya 😊"); return; }
+  document.getElementById("feedback-btn").disabled = true;
+  await sb.from("feedbacks").insert({ mood: selectedMood, message: text || null, session_id: currentSessionId });
   document.getElementById("feedback-section").style.display = "none";
   document.getElementById("feedback-done").style.display = "block";
 }
 
 // ══════════════════════════════════════════════
-// CLEANUP
+// TALKER FLOW
 // ══════════════════════════════════════════════
-function cleanupChatChannel() {
-  if (chatChannel) { sb.removeChannel(chatChannel); chatChannel = null; }
+async function talkerJoin() {
+  myRole = "talker";
+  myId = genId();
+  // Find available listener
+  const { data: listeners } = await sb.from("listeners").select("*").eq("status", "standby").limit(1);
+  if (!listeners || listeners.length === 0) {
+    await sb.from("queue").insert({ talker_id: myId, status: "waiting" });
+    showScreen("talker-waiting");
+    subscribeTalkerQueue();
+    return;
+  }
+  const listener = listeners[0];
+  const { data: session } = await sb.from("sessions").insert({ talker_id: myId, listener_id: listener.id, status: "pending" }).select().single();
+  currentSessionId = session.id;
+  await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", listener.id);
+  showScreen("talker-pending");
+  subscribeTalkerPending();
 }
 
-function cleanupChannels() {
-  cleanupChatChannel();
-  if (listenerChannel) { sb.removeChannel(listenerChannel); listenerChannel = null; }
-  if (talkerChannel) { sb.removeChannel(talkerChannel); talkerChannel = null; }
-  if (listenerPollInterval) clearInterval(listenerPollInterval);
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
+function subscribeTalkerPending() {
+  talkerChannel = sb.channel("talker-" + myId);
+  talkerChannel.on("broadcast", { event: "session-accepted" }, () => {
+    document.getElementById("chat-role-label").textContent = "Pendengar";
+    startTimer();
+    subscribeChatChannel();
+    showScreen("chat");
+  }).on("broadcast", { event: "session-rejected" }, () => {
+    showToast("Pendengar tidak tersedia, coba lagi"); showScreen("talker-join");
+  }).subscribe();
+}
+
+function subscribeTalkerQueue() {
+  talkerChannel = sb.channel("talker-queue-" + myId);
+  talkerChannel.on("broadcast", { event: "matched" }, async ({ payload }) => {
+    currentSessionId = payload.sessionId;
+    showScreen("talker-pending");
+    subscribeTalkerPending();
+  }).subscribe();
+}
+
+async function cancelQueue() {
+  await sb.from("queue").delete().eq("talker_id", myId);
+  cleanupChannels(); showScreen("landing");
+}
+
+// ══════════════════════════════════════════════
+// LISTENER FLOW
+// ══════════════════════════════════════════════
+async function listenerJoin() {
+  const alias = document.getElementById("listener-alias").value.trim();
+  const secret = document.getElementById("listener-secret").value.trim();
+  if (!alias) { showToast("Masukkan nama panggilanmu"); return; }
+  if (secret !== LISTENER_SECRET) { showToast("Kode listener salah"); return; }
+  listenerAlias = alias;
+  myRole = "listener";
+  const { data: row } = await sb.from("listeners").insert({ alias, status: "standby" }).select().single();
+  myListenerId = row.id;
+  document.getElementById("listener-name-label").textContent = alias;
+  showScreen("listener-standby");
+  subscribeListenerChannel();
+  // Check queue
+  const { data: queue } = await sb.from("queue").select("*").eq("status", "waiting").limit(1);
+  if (queue && queue.length > 0) {
+    const qItem = queue[0];
+    const { data: session } = await sb.from("sessions").insert({ talker_id: qItem.talker_id, listener_id: myListenerId, status: "pending" }).select().single();
+    currentSessionId = session.id;
+    await sb.from("queue").update({ status: "matched" }).eq("id", qItem.id);
+    const talkerCh = sb.channel("talker-queue-" + qItem.talker_id);
+    talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "matched", payload: { sessionId: session.id } }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+    await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", myListenerId);
+    showScreen("listener-incoming");
+  }
+}
+
+function subscribeListenerChannel() {
+  listenerChannel = sb.channel("listener-" + myListenerId);
+  listenerChannel.on("postgres_changes", { event: "UPDATE", schema: "public", table: "listeners", filter: `id=eq.${myListenerId}` }, async (payload) => {
+    const status = payload.new.status;
+    if (status === "incoming") {
+      currentSessionId = payload.new.session_id;
+      showScreen("listener-incoming");
+    }
+  }).subscribe();
+}
+
+async function listenerAccept() {
+  await sb.from("sessions").update({ status: "active", started_at: new Date().toISOString() }).eq("id", currentSessionId);
+  await sb.from("listeners").update({ status: "busy" }).eq("id", myListenerId);
+  const { data: session } = await sb.from("sessions").select("talker_id").eq("id", currentSessionId).single();
+  const talkerCh = sb.channel("talker-" + session.talker_id);
+  talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "session-accepted", payload: {} }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+  document.getElementById("chat-role-label").textContent = listenerAlias;
+  startTimer();
+  subscribeChatChannel();
+  showScreen("chat");
+}
+
+async function listenerReject() {
+  const { data: session } = await sb.from("sessions").select("talker_id").eq("id", currentSessionId).single();
+  await sb.from("sessions").update({ status: "rejected" }).eq("id", currentSessionId);
+  await sb.from("listeners").update({ status: "standby", session_id: null }).eq("id", myListenerId);
+  const talkerCh = sb.channel("talker-" + session.talker_id);
+  talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "session-rejected", payload: {} }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+  currentSessionId = null;
+  showScreen("listener-standby");
+}
+
+async function listenerLogout() {
+  if (myListenerId) await sb.from("listeners").delete().eq("id", myListenerId);
+  cleanupChannels(); myListenerId = null; myRole = null;
+  showScreen("landing");
+}
+
+// ══════════════════════════════════════════════
+// CHAT CHANNEL (text + voice notes)
+// ══════════════════════════════════════════════
+function subscribeChatChannel() {
+  chatChannel = sb.channel("chat-" + currentSessionId);
+  chatChannel
+    .on("broadcast", { event: "message" }, ({ payload }) => {
+      if (payload.role !== myRole) appendMsg(payload.text, false, payload.ts);
+    })
+    .on("broadcast", { event: "voice_note" }, ({ payload }) => {
+      receiveVoiceNote(payload);
+    })
+    .on("broadcast", { event: "end" }, ({ payload }) => {
+      if (payload.role !== myRole) {
+        showToast("Sesi diakhiri oleh pihak lain");
+        endSession();
+      }
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════════════
+// MOD
+// ══════════════════════════════════════════════
+function modJoin() {
+  const secret = document.getElementById("mod-secret").value.trim();
+  if (secret !== MODERATOR_SECRET) { showToast("Password salah"); return; }
+  myRole = "mod";
+  showScreen("mod-dashboard");
+  modRefresh();
+}
+
+async function modRefresh() {
+  const [{ data: listeners }, { data: sessions }, { data: queue }] = await Promise.all([
+    sb.from("listeners").select("*").eq("status", "standby"),
+    sb.from("sessions").select("*").eq("status", "active"),
+    sb.from("queue").select("*").eq("status", "waiting")
+  ]);
+  document.getElementById("mod-listener-count").textContent = listeners ? listeners.length : 0;
+  document.getElementById("mod-session-count").textContent = sessions ? sessions.length : 0;
+  document.getElementById("mod-queue-count").textContent = queue ? queue.length : 0;
+  document.getElementById("mod-talker-count").textContent = queue ? queue.length : 0;
+  const sessionEl = document.getElementById("mod-sessions");
+  if (!sessions || sessions.length === 0) { sessionEl.innerHTML = '<div class="empty-state">Belum ada sesi aktif</div>'; return; }
+  sessionEl.innerHTML = sessions.map(s => `
+    <div class="session-item">
+      <div class="session-info">
+        <div class="si-title"><span class="dot dot-green"></span>Sesi ${s.id.slice(0,6)}</div>
+        <div class="si-sub">Talker: ${s.talker_id.slice(0,6)} · Listener: ${s.listener_id}</div>
+      </div>
+    </div>`).join("");
 }
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-window.addEventListener("beforeunload", async () => {
-  if (currentSessionId) {
-    await sb.channel("chat:" + currentSessionId).send({
-      type: "broadcast",
-      event: "session_end",
-      payload: { listenerLeft: myRole === "listener", talkerLeft: myRole === "talker" }
-    });
-  }
-  if (myListenerId) {
-    navigator.sendBeacon(
-      `${SUPABASE_URL}/rest/v1/listeners?id=eq.${myListenerId}`,
-      null
-    );
-  }
-});
-
 showScreen("landing");
 </script>
 </body>
