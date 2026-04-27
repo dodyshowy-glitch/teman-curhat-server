@@ -864,25 +864,41 @@ async function listenerJoin() {
   const alias = document.getElementById("listener-alias").value.trim();
   const secret = document.getElementById("listener-secret").value.trim();
   if (!alias) { showToast("Masukkan nama panggilanmu"); return; }
-  if (secret !== LISTENER_SECRET) { showToast("Kode listener salah"); return; }
+  if (secret !== LISTENER_SECRET) { showToast("❌ Kode listener salah"); return; }
   listenerAlias = alias;
   myRole = "listener";
-  const { data: row } = await sb.from("listeners").insert({ alias, status: "standby" }).select().single();
-  myListenerId = row.id;
-  document.getElementById("listener-name-label").textContent = alias;
-  showScreen("listener-standby");
-  subscribeListenerChannel();
-  // Check queue
-  const { data: queue } = await sb.from("queue").select("*").eq("status", "waiting").limit(1);
-  if (queue && queue.length > 0) {
-    const qItem = queue[0];
-    const { data: session } = await sb.from("sessions").insert({ talker_id: qItem.talker_id, listener_id: myListenerId, status: "pending" }).select().single();
-    currentSessionId = session.id;
-    await sb.from("queue").update({ status: "matched" }).eq("id", qItem.id);
-    const talkerCh = sb.channel("talker-queue-" + qItem.talker_id);
-    talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "matched", payload: { sessionId: session.id } }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
-    await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", myListenerId);
-    showScreen("listener-incoming");
+
+  const btn = document.querySelector("#screen-listener-join .btn-primary");
+  btn.disabled = true;
+  btn.textContent = "Memproses...";
+
+  try {
+    const { data: row, error: insertErr } = await sb.from("listeners").insert({ alias, status: "standby" }).select().single();
+    if (insertErr) throw new Error(insertErr.message);
+    myListenerId = row.id;
+    document.getElementById("listener-name-label").textContent = alias;
+    btn.disabled = false;
+    btn.textContent = "Masuk sebagai Listener";
+    showScreen("listener-standby");
+    subscribeListenerChannel();
+    // Check queue
+    const { data: queue } = await sb.from("queue").select("*").eq("status", "waiting").limit(1);
+    if (queue && queue.length > 0) {
+      const qItem = queue[0];
+      const { data: session, error: sessErr } = await sb.from("sessions").insert({ talker_id: qItem.talker_id, listener_id: myListenerId, status: "pending" }).select().single();
+      if (sessErr) throw new Error(sessErr.message);
+      currentSessionId = session.id;
+      await sb.from("queue").update({ status: "matched" }).eq("id", qItem.id);
+      const talkerCh = sb.channel("talker-queue-" + qItem.talker_id);
+      talkerCh.subscribe(() => { talkerCh.send({ type: "broadcast", event: "matched", payload: { sessionId: session.id } }); setTimeout(() => sb.removeChannel(talkerCh), 3000); });
+      await sb.from("listeners").update({ status: "incoming", session_id: session.id }).eq("id", myListenerId);
+      showScreen("listener-incoming");
+    }
+  } catch(e) {
+    showToast("❌ Gagal masuk: " + e.message);
+    btn.disabled = false;
+    btn.textContent = "Masuk sebagai Listener";
+    myRole = null;
   }
 }
 
@@ -949,9 +965,10 @@ function subscribeChatChannel() {
 // ══════════════════════════════════════════════
 // MOD
 // ══════════════════════════════════════════════
-function modJoin() {
+async function modJoin() {
   const secret = document.getElementById("mod-secret").value.trim();
-  if (secret !== MODERATOR_SECRET) { showToast("Password salah"); return; }
+  if (!secret) { showToast("Masukkan password moderator"); return; }
+  if (secret !== MODERATOR_SECRET) { showToast("❌ Password moderator salah"); return; }
   myRole = "mod";
   showScreen("mod-dashboard");
   modRefresh();
