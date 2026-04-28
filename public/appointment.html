@@ -158,6 +158,38 @@
   textarea:focus { border-color: var(--gold); }
   textarea::placeholder { color: var(--muted); }
 
+  /* PREFERENCE CHIPS */
+  .pref-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .pref-chip {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: .78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .pref-chip:hover { border-color: var(--gold); color: var(--cream); }
+  .pref-chip.selected {
+    border-color: var(--gold);
+    background: #2a2210;
+    color: var(--gold2);
+  }
+  .pref-label {
+    font-size: .78rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+  .pref-label:first-child { margin-top: 0; }
+
   /* PRIVACY NOTE */
   .privacy-note {
     background: #1a1f14;
@@ -315,6 +347,28 @@
       <textarea id="cerita" placeholder="Ceritakan sedikit apa yang ingin kamu bicarakan..." maxlength="500"></textarea>
     </div>
 
+    <!-- PREFERENSI PENDENGAR -->
+    <div class="card">
+      <div class="section-title">Preferensi Pendengar 🎧</div>
+      <div class="section-sub">Opsional. Kami akan berusaha menyesuaikan, tapi tidak selalu bisa dijamin ya.</div>
+
+      <div class="pref-label">Gender pendengar:</div>
+      <div class="pref-grid" id="gender-grid">
+        <button class="pref-chip" onclick="pilihPref('gender', this)">Laki-laki</button>
+        <button class="pref-chip" onclick="pilihPref('gender', this)">Perempuan</button>
+        <button class="pref-chip selected" onclick="pilihPref('gender', this)">Tidak ada preferensi</button>
+      </div>
+
+      <div class="pref-label">Usia pendengar:</div>
+      <div class="pref-grid" id="age-grid">
+        <button class="pref-chip" onclick="pilihPref('age', this)">Gen Z (1997–2012)</button>
+        <button class="pref-chip" onclick="pilihPref('age', this)">Millennial (1981–1996)</button>
+        <button class="pref-chip" onclick="pilihPref('age', this)">Gen X (1965–1980)</button>
+        <button class="pref-chip" onclick="pilihPref('age', this)">Boomer (1946–1964)</button>
+        <button class="pref-chip selected" onclick="pilihPref('age', this)">Tidak ada preferensi</button>
+      </div>
+    </div>
+
     <!-- PRIVACY -->
     <div class="privacy-note">
       🔒 <strong>Privasimu terjaga.</strong> Form ini tidak meminta nama, email, atau identitas apapun.
@@ -380,6 +434,16 @@ const CONFIG = {
 
 let selectedSlot = null;
 let selectedTopics = [];
+let selectedGender = "Tidak ada preferensi";
+let selectedAge = "Tidak ada preferensi";
+
+function pilihPref(type, btn) {
+  const gridId = type === 'gender' ? 'gender-grid' : 'age-grid';
+  document.querySelectorAll(`#${gridId} .pref-chip`).forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  if (type === 'gender') selectedGender = btn.textContent;
+  else selectedAge = btn.textContent;
+}
 
 function pilihSlot(btn) {
   if (btn.classList.contains("full")) return;
@@ -430,6 +494,8 @@ async function kirimForm() {
         subject: `[Teman Curhat] Pendaftaran Sesi - ${hari} ${jam}`,
         jadwal: `${hari}, ${jam}`,
         topik: topikStr,
+        preferensi_gender_pendengar: selectedGender,
+        preferensi_usia_pendengar: selectedAge,
         cerita: cerita || "(tidak diisi)",
       }),
     });
