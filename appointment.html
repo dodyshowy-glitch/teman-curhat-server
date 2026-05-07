@@ -224,35 +224,175 @@
   /* SUCCESS */
   .success-screen {
     display: none;
-    text-align: center;
-    padding: 40px 20px;
     animation: fadeUp .5s ease both;
   }
-  .success-icon { font-size: 3rem; margin-bottom: 16px; }
-  .success-title {
-    font-family: 'Lora', serif;
-    font-size: 1.4rem;
-    color: var(--gold2);
-    margin-bottom: 10px;
+
+  /* CONFIRMED BADGE */
+  .confirmed-badge {
+    text-align: center;
+    padding: 36px 20px 28px;
   }
-  .success-desc { font-size: .88rem; color: var(--muted); line-height: 1.8; }
-  .success-slot {
-    background: var(--surface);
-    border: 1px solid var(--gold);
-    border-radius: 10px;
-    padding: 14px;
-    margin: 20px 0;
-    font-size: .9rem;
-    color: var(--gold2);
+  .confirmed-icon {
+    width: 72px;
+    height: 72px;
+    background: #1c2214;
+    border: 2px solid var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 1.8rem;
+  }
+  .confirmed-title {
     font-family: 'Lora', serif;
+    font-size: 1.5rem;
+    color: var(--gold2);
+    margin-bottom: 8px;
+  }
+  .confirmed-sub {
+    font-size: .84rem;
+    color: var(--muted);
+    line-height: 1.7;
   }
 
-  /* DIVIDER */
-  .divider {
-    width: 40px; height: 1px;
+  /* SLOT CONFIRMED */
+  .slot-confirmed {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .slot-confirmed-label {
+    font-size: .72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .slot-confirmed-value {
+    font-family: 'Lora', serif;
+    font-size: 1.3rem;
+    color: var(--gold2);
+    margin-bottom: 4px;
+  }
+  .slot-confirmed-note {
+    font-size: .78rem;
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .slot-confirmed-note::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* INFO BOX */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .info-box-title {
+    font-size: .75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: .8rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .info-row-icon { flex-shrink: 0; font-size: .9rem; }
+  .info-row strong { color: var(--cream); }
+
+  /* LINK BOX */
+  .link-box {
+    background: var(--surface);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .link-box-title {
+    font-size: .78rem;
+    color: var(--gold);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .link-box-desc {
+    font-size: .76rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .link-text {
+    font-size: .8rem;
+    color: var(--gold2);
+    font-family: 'Lora', serif;
+    flex: 1;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .copy-btn {
     background: var(--gold);
-    margin: 24px auto;
-    opacity: .4;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: .75rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #0f0e0c;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { background: var(--gold2); }
+  .copy-btn.copied {
+    background: var(--green);
+    color: #fff;
+  }
+
+  /* CLOSING */
+  .closing {
+    text-align: center;
+    padding: 20px 0 8px;
+    font-size: .78rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .closing .divider {
+    width: 30px;
+    height: 1px;
+    background: var(--border);
+    margin: 16px auto;
   }
 
   /* ERROR */
@@ -261,24 +401,6 @@
     color: var(--red);
     margin-top: 6px;
     display: none;
-  }
-
-  .btn-chat-now {
-    display: block;
-    background: transparent;
-    border: 1.5px solid var(--gold);
-    border-radius: 10px;
-    padding: 14px;
-    color: var(--gold2);
-    font-family: 'Lora', serif;
-    font-size: .95rem;
-    text-decoration: none;
-    text-align: center;
-    transition: all .2s;
-    margin-top: 4px;
-  }
-  .btn-chat-now:hover {
-    background: #2a2210;
   }
 
   @keyframes fadeUp {
@@ -301,11 +423,6 @@
       <div class="section-sub">Pilih satu slot waktu yang paling cocok buatmu.</div>
 
       <div class="slot-grid" id="slot-grid">
-        <!-- ═══════════════════════════════════════════════════
-             EDIT JADWAL DI SINI
-             Format: data-slot="HARI|JAM"
-             Tambah class "full" kalau slot sudah penuh
-             ═══════════════════════════════════════════════════ -->
         <button class="slot-btn" data-slot="Selasa|20.00 WIB" onclick="pilihSlot(this)">
           <div class="slot-day">Selasa</div>
           <div class="slot-time">20.00 WIB</div>
@@ -380,57 +497,71 @@
 
   <!-- SUCCESS -->
   <div class="success-screen" id="success-screen">
-    <div class="success-icon">🌿</div>
-    <div class="success-title">Pendaftaran Diterima</div>
-    <div class="success-slot" id="success-slot-text">—</div>
-    <div class="success-desc">
-      Terima kasih sudah mau melangkah. Itu butuh keberanian.<br><br>
-      Kami akan konfirmasi jadwalmu segera.<br>
-      Sampai jumpa di sesi curhat ya 🙏
-    </div>
-    <div class="divider"></div>
-    <div class="success-desc" style="font-size:.84rem;margin-bottom:14px">
-      Kalau kamu butuh bicara sekarang dan ada pendengar yang online,<br>kamu bisa langsung masuk ke ruang chat:
-    </div>
-    <a href="https://teman-curhat.github.io/teman-curhat-server/?v=5" target="_blank" class="btn-chat-now">
-      💬 Masuk ke Ruang Curhat Sekarang
-    </a>
 
-    <div style="margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left">
-      <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">🔗 Simpan link ini supaya bisa balik kapanpun:</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div id="copy-link-text" style="font-size:.82rem;color:var(--gold2);font-family:'Lora',serif;flex:1;word-break:break-all"> https://teman-curhat.github.io/teman-curhat-server/</div>
-        <button onclick="copyLink()" id="copy-btn" style="background:var(--gold);border:none;border-radius:6px;padding:7px 12px;font-size:.75rem;font-weight:500;cursor:pointer;color:#0f0e0c;white-space:nowrap;font-family:'DM Sans',sans-serif">Salin</button>
+    <!-- CONFIRMED BADGE -->
+    <div class="confirmed-badge">
+      <div class="confirmed-icon">✓</div>
+      <div class="confirmed-title">Sesimu Sudah Terdaftar</div>
+      <div class="confirmed-sub">
+        Tidak perlu menunggu konfirmasi.<br>
+        Jadwalmu sudah pasti — tinggal datang.
       </div>
     </div>
 
-    <div class="divider"></div>
+    <!-- SLOT CONFIRMED -->
+    <div class="slot-confirmed">
+      <div class="slot-confirmed-label">Jadwal sesimu</div>
+      <div class="slot-confirmed-value" id="success-slot-text">—</div>
+      <div class="slot-confirmed-note">Jadwal sudah fixed. Pendengar akan siap untukmu.</div>
+    </div>
+
     <!-- INFO PENTING -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:left;margin-bottom:16px">
-      <div style="font-size:.82rem;color:var(--gold2);font-family:'Lora',serif;margin-bottom:10px">📋 Hal penting yang perlu kamu tahu:</div>
-      <div style="font-size:.78rem;color:var(--muted);line-height:2">
-        ⏰ Harap masuk tepat waktu sesuai jadwal<br>
-        🕐 Pendengar akan menunggu maksimal <strong style="color:var(--cream)">30 menit</strong> dari waktu janji<br>
-        📱 Disarankan menggunakan <strong style="color:var(--cream)">HP</strong> untuk pengalaman terbaik<br>
-        🔒 Semua percakapan bersifat anonim & aman
+    <div class="info-box">
+      <div class="info-box-title">Yang perlu kamu tahu</div>
+      <div class="info-row">
+        <span class="info-row-icon">⏰</span>
+        <span>Masuk ke ruang chat <strong>tepat waktu</strong> sesuai jadwal yang kamu pilih</span>
+      </div>
+      <div class="info-row">
+        <span class="info-row-icon">🕐</span>
+        <span>Pendengar akan menunggu maksimal <strong>30 menit</strong> dari waktu yang disepakati</span>
+      </div>
+      <div class="info-row">
+        <span class="info-row-icon">📱</span>
+        <span>Gunakan <strong>HP</strong> untuk pengalaman terbaik</span>
+      </div>
+      <div class="info-row">
+        <span class="info-row-icon">🔒</span>
+        <span>Semua percakapan <strong>anonim</strong> dan tidak direkam</span>
       </div>
     </div>
 
-    <div class="success-desc" style="font-size:.76rem">
-      Kamu tidak sendirian. Ada yang peduli.
+    <!-- LINK BOX -->
+    <div class="link-box">
+      <div class="link-box-title">🔗 Link ruang curhatmu</div>
+      <div class="link-box-desc">
+        Simpan link ini. Pas hari H, kamu cukup buka link ini dan langsung masuk — tidak perlu daftar lagi.
+      </div>
+      <div class="link-row">
+        <div class="link-text">teman-curhat.github.io/teman-curhat-server/</div>
+        <button class="copy-btn" id="copy-btn" onclick="copyLink()">Salin</button>
+      </div>
     </div>
+
+    <!-- CLOSING -->
+    <div class="closing">
+      <div class="divider"></div>
+      Kamu tidak sendirian. Ada yang peduli dan siap mendengar. 🌿
+    </div>
+
   </div>
 
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// KONFIGURASI — EDIT DI SINI
-// ═══════════════════════════════════════════════════════
 const CONFIG = {
   web3formsKey: "aef72916-a9d4-424f-b8ee-eb5d5b15c0c2",
 };
-// ═══════════════════════════════════════════════════════
 
 let selectedSlot = null;
 let selectedTopics = [];
@@ -466,7 +597,6 @@ function pilihTopik(btn) {
 
 async function kirimForm() {
   let valid = true;
-
   if (!selectedSlot) {
     document.getElementById("err-slot").style.display = "block";
     valid = false;
@@ -479,7 +609,7 @@ async function kirimForm() {
 
   const btn = document.querySelector(".btn-submit");
   btn.disabled = true;
-  btn.textContent = "Mengirim...";
+  btn.textContent = "Mendaftarkan...";
 
   const [hari, jam] = selectedSlot.split("|");
   const cerita = document.getElementById("cerita").value.trim();
@@ -518,29 +648,28 @@ async function kirimForm() {
 }
 
 function copyLink() {
-  const link = "https://teman-curhat.github.io/teman-curhat-server/?v=5";
+  const link = "https://teman-curhat.github.io/teman-curhat-server/";
+  const btn = document.getElementById("copy-btn");
+
   navigator.clipboard.writeText(link).then(() => {
-    const btn = document.getElementById("copy-btn");
     btn.textContent = "Tersalin ✓";
-    btn.style.background = "var(--green)";
+    btn.classList.add("copied");
     setTimeout(() => {
       btn.textContent = "Salin";
-      btn.style.background = "var(--gold)";
+      btn.classList.remove("copied");
     }, 2000);
   }).catch(() => {
-    // Fallback untuk browser yang tidak support clipboard API
     const el = document.createElement("textarea");
-    el.value = "https://teman-curhat.github.io/teman-curhat-server/?v=5";
+    el.value = link;
     document.body.appendChild(el);
     el.select();
     document.execCommand("copy");
     document.body.removeChild(el);
-    const btn = document.getElementById("copy-btn");
     btn.textContent = "Tersalin ✓";
-    btn.style.background = "var(--green)";
+    btn.classList.add("copied");
     setTimeout(() => {
       btn.textContent = "Salin";
-      btn.style.background = "var(--gold)";
+      btn.classList.remove("copied");
     }, 2000);
   });
 }
