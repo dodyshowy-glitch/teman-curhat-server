@@ -105,7 +105,9 @@
     color: var(--gold2);
   }
   .slot-btn .slot-day { font-weight: 500; font-size: .85rem; }
-  .slot-btn .slot-time { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .slot-btn .slot-date { font-size: .78rem; color: var(--gold); margin-top: 2px; }
+  .slot-btn .slot-time { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .slot-btn.selected .slot-date { color: var(--gold2); }
   .slot-btn.selected .slot-time { color: var(--gold); }
   .slot-btn.full {
     opacity: .35;
@@ -423,18 +425,7 @@
       <div class="section-sub">Pilih satu slot waktu yang paling cocok buatmu.</div>
 
       <div class="slot-grid" id="slot-grid">
-        <button class="slot-btn" data-slot="Selasa|20.00 WIB" onclick="pilihSlot(this)">
-          <div class="slot-day">Selasa</div>
-          <div class="slot-time">20.00 WIB</div>
-        </button>
-        <button class="slot-btn" data-slot="Kamis|20.00 WIB" onclick="pilihSlot(this)">
-          <div class="slot-day">Kamis</div>
-          <div class="slot-time">20.00 WIB</div>
-        </button>
-        <button class="slot-btn" data-slot="Jumat|20.00 WIB" onclick="pilihSlot(this)">
-          <div class="slot-day">Jumat</div>
-          <div class="slot-time">20.00 WIB</div>
-        </button>
+        <!-- diisi otomatis oleh JS -->
       </div>
       <div class="error-msg" id="err-slot">Pilih jadwal dulu ya 🙏</div>
     </div>
@@ -559,25 +550,103 @@
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════
+// KONFIGURASI
+// ═══════════════════════════════════════════════════
 const CONFIG = {
   web3formsKey: "aef72916-a9d4-424f-b8ee-eb5d5b15c0c2",
 };
 
+// Jadwal tetap — edit di sini kalau mau ubah hari/jam
+// dayOfWeek: 0=Minggu 1=Senin 2=Selasa 3=Rabu 4=Kamis 5=Jumat 6=Sabtu
+// cutoffHour: jam berapa slot dianggap lewat (format 24 jam, WIB)
+const SLOTS = [
+  { label: "Selasa", dayOfWeek: 2, time: "20.00 WIB", cutoffHour: 20 },
+  { label: "Kamis",  dayOfWeek: 4, time: "20.00 WIB", cutoffHour: 20 },
+  { label: "Jumat",  dayOfWeek: 5, time: "20.00 WIB", cutoffHour: 20 },
+];
+
+const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
 let selectedSlot = null;
 let selectedTopics = [];
 let selectedGender = "Tidak ada preferensi";
-let selectedAge = "Tidak ada preferensi";
+let selectedAge   = "Tidak ada preferensi";
 
+// ═══════════════════════════════════════════════════
+// TANGGAL DINAMIS
+// Ambil tanggal terdekat untuk hari tertentu.
+// Kalau hari itu sudah lewat (atau jam sudah lewat cutoff), lompat ke minggu depan.
+// ═══════════════════════════════════════════════════
+function getNextDate(targetDay, cutoffHour) {
+  // Konversi ke WIB (UTC+7)
+  const nowUTC = new Date();
+  const wibOffset = 7 * 60; // menit
+  const nowWIB = new Date(nowUTC.getTime() + wibOffset * 60 * 1000);
+
+  const todayDay  = nowWIB.getUTCDay();
+  const todayHour = nowWIB.getUTCHours();
+
+  let diff = targetDay - todayDay;
+
+  // Sudah lewat hari ini (jam cutoff) atau hari sudah lewat minggu ini
+  if (diff < 0 || (diff === 0 && todayHour >= cutoffHour)) {
+    diff += 7;
+  }
+
+  const result = new Date(nowWIB);
+  result.setUTCDate(nowWIB.getUTCDate() + diff);
+
+  const d = result.getUTCDate();
+  const m = result.getUTCMonth();
+  return {
+    day:   String(d).padStart(2, '0'),
+    month: BULAN[m],
+    full:  `${String(d).padStart(2,'0')} ${BULAN[m]} ${result.getUTCFullYear()}`,
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// BUILD SLOT BUTTONS
+// ═══════════════════════════════════════════════════
+function buildSlots() {
+  const grid = document.getElementById("slot-grid");
+  grid.innerHTML = "";
+
+  SLOTS.forEach(slot => {
+    const date = getNextDate(slot.dayOfWeek, slot.cutoffHour);
+    // Format untuk email: "Selasa, 13 Mei 2025"
+    // Format untuk display success: "Selasa, 13 Mei · 20.00 WIB"
+    const slotData = `${slot.label}, ${date.full}|${slot.time}`;
+
+    const btn = document.createElement("button");
+    btn.className = "slot-btn";
+    btn.dataset.slot = slotData;
+    btn.innerHTML = `
+      <div class="slot-day">${slot.label}</div>
+      <div class="slot-date">${date.day} ${date.month}</div>
+      <div class="slot-time">${slot.time}</div>
+    `;
+    btn.addEventListener("click", () => pilihSlot(btn));
+    grid.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// HANDLERS
+// ═══════════════════════════════════════════════════
 function pilihPref(type, btn) {
   const gridId = type === 'gender' ? 'gender-grid' : 'age-grid';
   document.querySelectorAll(`#${gridId} .pref-chip`).forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
-  if (type === 'gender') selectedGender = btn.textContent;
-  else selectedAge = btn.textContent;
+  if (type === 'gender') selectedGender = btn.textContent.trim();
+  else selectedAge = btn.textContent.trim();
 }
 
 function pilihSlot(btn) {
-  if (btn.classList.contains("full")) return;
   document.querySelectorAll(".slot-btn").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
   selectedSlot = btn.dataset.slot;
@@ -586,7 +655,7 @@ function pilihSlot(btn) {
 
 function pilihTopik(btn) {
   btn.classList.toggle("selected");
-  const topik = btn.textContent;
+  const topik = btn.textContent.trim();
   if (btn.classList.contains("selected")) {
     selectedTopics.push(topik);
   } else {
@@ -611,8 +680,8 @@ async function kirimForm() {
   btn.disabled = true;
   btn.textContent = "Mendaftarkan...";
 
-  const [hari, jam] = selectedSlot.split("|");
-  const cerita = document.getElementById("cerita").value.trim();
+  const [hariTanggal, jam] = selectedSlot.split("|");
+  const cerita   = document.getElementById("cerita").value.trim();
   const topikStr = selectedTopics.join(", ");
 
   try {
@@ -621,18 +690,19 @@ async function kirimForm() {
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({
         access_key: CONFIG.web3formsKey,
-        subject: `[Teman Curhat] Pendaftaran Sesi - ${hari} ${jam}`,
-        jadwal: `${hari}, ${jam}`,
-        topik: topikStr,
+        subject:  `[Teman Curhat] Pendaftaran Sesi - ${hariTanggal} ${jam}`,
+        jadwal:   `${hariTanggal}, ${jam}`,
+        topik:    topikStr,
         preferensi_gender_pendengar: selectedGender,
-        preferensi_usia_pendengar: selectedAge,
-        cerita: cerita || "(tidak diisi)",
+        preferensi_usia_pendengar:   selectedAge,
+        cerita:   cerita || "(tidak diisi)",
       }),
     });
 
     if (res.ok) {
-      document.getElementById("success-slot-text").textContent = `${hari} · ${jam}`;
-      document.getElementById("form-screen").style.display = "none";
+      // Tampilkan di success: "Selasa, 13 Mei 2025 · 20.00 WIB"
+      document.getElementById("success-slot-text").textContent = `${hariTanggal} · ${jam}`;
+      document.getElementById("form-screen").style.display   = "none";
       document.getElementById("success-screen").style.display = "block";
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -649,30 +719,29 @@ async function kirimForm() {
 
 function copyLink() {
   const link = "https://teman-curhat.github.io/teman-curhat-server/";
-  const btn = document.getElementById("copy-btn");
+  const btn  = document.getElementById("copy-btn");
 
-  navigator.clipboard.writeText(link).then(() => {
+  const done = () => {
     btn.textContent = "Tersalin ✓";
     btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "Salin";
-      btn.classList.remove("copied");
-    }, 2000);
-  }).catch(() => {
+    setTimeout(() => { btn.textContent = "Salin"; btn.classList.remove("copied"); }, 2000);
+  };
+
+  navigator.clipboard.writeText(link).then(done).catch(() => {
     const el = document.createElement("textarea");
     el.value = link;
     document.body.appendChild(el);
     el.select();
     document.execCommand("copy");
     document.body.removeChild(el);
-    btn.textContent = "Tersalin ✓";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "Salin";
-      btn.classList.remove("copied");
-    }, 2000);
+    done();
   });
 }
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+buildSlots();
 </script>
 </body>
 </html>
